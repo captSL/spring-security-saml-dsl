@@ -3,10 +3,9 @@ package org.springframework.security.extensions.saml2.config;
 import org.apache.commons.httpclient.HttpClient;
 import org.opensaml.Configuration;
 import org.opensaml.PaosBootstrap;
-import org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider;
-import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
-import org.opensaml.saml2.metadata.provider.MetadataProvider;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.opensaml.saml2.metadata.provider.*;
+import org.opensaml.util.resource.ClasspathResource;
+import org.opensaml.util.resource.ResourceException;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.parse.ParserPool;
 import org.opensaml.xml.parse.StaticBasicParserPool;
@@ -334,6 +333,8 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 		private MetadataProvider metadataProvider() {
 			if (metadataFilePath.startsWith("http")) {
 				return httpMetadataProvider();
+			} else if (metadataFilePath.startsWith("classpath")) {
+				return classpathResourceMetadataProvider();
 			} else {
 				return fileSystemMetadataProvider();
 			}
@@ -370,6 +371,26 @@ public class SAMLConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFil
 			filesystemMetadataProvider.setParserPool(parserPool);
 
 			return filesystemMetadataProvider;
+		}
+
+		private ResourceBackedMetadataProvider classpathResourceMetadataProvider() {
+
+			org.opensaml.util.resource.Resource resource = null;
+			try {
+				resource = new ClasspathResource(metadataFilePath.replaceFirst("classpath:", ""));
+			} catch (ResourceException e) {
+				e.printStackTrace();
+			}
+
+			ResourceBackedMetadataProvider classpathResourceMetadataProvider = null;
+			try {
+				classpathResourceMetadataProvider = new ResourceBackedMetadataProvider(new Timer(true), resource);
+				classpathResourceMetadataProvider.setParserPool(parserPool);
+			} catch (MetadataProviderException e) {
+				e.printStackTrace();
+			}
+
+			return classpathResourceMetadataProvider;
 		}
 
 		public SAMLConfigurer and () { return SAMLConfigurer.this; }
